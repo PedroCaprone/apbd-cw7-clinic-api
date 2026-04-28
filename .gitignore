@@ -1,0 +1,29 @@
+# Rider / IntelliJ
+.idea/
+
+# Build
+bin/
+obj/
+
+# User files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .NET
+*.vs/
+
+# NuGet
+*.nupkg
+packages/
+
+# Debug
+*.pdb
