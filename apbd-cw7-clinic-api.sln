@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "apdb-cw7-clinic-api", "apdb-cw7-clinic-api\apdb-cw7-clinic-api.csproj", "{7F3B093B-439F-429F-8498-A3D62087BB07}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "apbd-cw7-clinic-api", "apbd-cw7-clinic-api\apbd-cw7-clinic-api.csproj", "{7F3B093B-439F-429F-8498-A3D62087BB07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
