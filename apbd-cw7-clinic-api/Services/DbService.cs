@@ -111,4 +111,78 @@ public class DbService
             DoctorSpecialization = reader.GetString(13)
         };
     }
+    
+    public async Task<bool> ActivePatientExistsAsync(int idPatient)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT COUNT(1)
+                                                 FROM dbo.Patients
+                                                 WHERE IdPatient = @IdPatient AND IsActive = 1;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdPatient", idPatient);
+
+        var result = (int)await command.ExecuteScalarAsync();
+        return result > 0;
+    }
+
+    public async Task<bool> ActiveDoctorExistsAsync(int idDoctor)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT COUNT(1)
+                                                 FROM dbo.Doctors
+                                                 WHERE IdDoctor = @IdDoctor AND IsActive = 1;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdDoctor", idDoctor);
+
+        var result = (int)await command.ExecuteScalarAsync();
+        return result > 0;
+    }
+    
+    public async Task<bool> DoctorHasScheduledAppointmentAtAsync(int idDoctor, DateTime appointmentDate)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT COUNT(1)
+                                                 FROM dbo.Appointments
+                                                 WHERE IdDoctor = @IdDoctor
+                                                   AND AppointmentDate = @AppointmentDate
+                                                   AND Status = N'Scheduled';
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdDoctor", idDoctor);
+        command.Parameters.AddWithValue("@AppointmentDate", appointmentDate);
+
+        var result = (int)await command.ExecuteScalarAsync();
+        return result > 0;
+    }
+    
+    public async Task<int> CreateAppointmentAsync(CreateAppointmentRequestDto dto)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+            INSERT INTO dbo.Appointments (IdPatient, IdDoctor, AppointmentDate, Status, Reason)
+            OUTPUT INSERTED.IdAppointment
+            VALUES (@IdPatient, @IdDoctor, @AppointmentDate, N'Scheduled', @Reason);
+            """, connection);
+
+        command.Parameters.AddWithValue("@IdPatient", dto.IdPatient);
+        command.Parameters.AddWithValue("@IdDoctor", dto.IdDoctor);
+        command.Parameters.AddWithValue("@AppointmentDate", dto.AppointmentDate);
+        command.Parameters.AddWithValue("@Reason", dto.Reason);
+
+        var newId = (int)await command.ExecuteScalarAsync();
+        return newId;
+    }
 }
