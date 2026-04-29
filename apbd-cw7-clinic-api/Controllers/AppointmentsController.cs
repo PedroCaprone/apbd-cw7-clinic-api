@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using apbd_cw7_clinic_api.Services;
 
 namespace apbd_cw7_clinic_api.Controllers;
 
@@ -6,5 +7,17 @@ namespace apbd_cw7_clinic_api.Controllers;
 [Route("api/[controller]")]
 public class AppointmentsController : ControllerBase
 {
-    
+    private readonly DbService _dbService;
+
+    public AppointmentsController(DbService dbService)
+    {
+        _dbService = dbService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAppointments([FromQuery] string? status, [FromQuery] string? patientLastName)
+    {
+        var appointments = await _dbService.GetAppointmentsAsync(status, patientLastName);
+        return Ok(appointments);
+    }
 }
