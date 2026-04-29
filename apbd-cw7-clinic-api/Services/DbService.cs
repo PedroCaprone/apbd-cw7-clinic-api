@@ -54,4 +54,61 @@ public class DbService
 
         return appointments;
     }
+    public async Task<AppointmentDetailsDto?> GetAppointmentByIdAsync(int idAppointment)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT
+                                                     a.IdAppointment,
+                                                     a.AppointmentDate,
+                                                     a.Status,
+                                                     a.Reason,
+                                                     a.InternalNotes,
+                                                     a.CreatedAt,
+                                                     p.IdPatient,
+                                                     p.FirstName + N' ' + p.LastName AS PatientFullName,
+                                                     p.Email AS PatientEmail,
+                                                     p.PhoneNumber AS PatientPhoneNumber,
+                                                     d.IdDoctor,
+                                                     d.FirstName + N' ' + d.LastName AS DoctorFullName,
+                                                     d.LicenseNumber AS DoctorLicenseNumber,
+                                                     s.Name AS DoctorSpecialization
+                                                 FROM dbo.Appointments a
+                                                 JOIN dbo.Patients p ON p.IdPatient = a.IdPatient
+                                                 JOIN dbo.Doctors d ON d.IdDoctor = a.IdDoctor
+                                                 JOIN dbo.Specializations s ON s.IdSpecialization = d.IdSpecialization
+                                                 WHERE a.IdAppointment = @IdAppointment;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdAppointment", idAppointment);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new AppointmentDetailsDto
+        {
+            IdAppointment = reader.GetInt32(0),
+            AppointmentDate = reader.GetDateTime(1),
+            Status = reader.GetString(2),
+            Reason = reader.GetString(3),
+            InternalNotes = reader.IsDBNull(4) ? null : reader.GetString(4),
+            CreatedAt = reader.GetDateTime(5),
+
+            IdPatient = reader.GetInt32(6),
+            PatientFullName = reader.GetString(7),
+            PatientEmail = reader.GetString(8),
+            PatientPhoneNumber = reader.GetString(9),
+
+            IdDoctor = reader.GetInt32(10),
+            DoctorFullName = reader.GetString(11),
+            DoctorLicenseNumber = reader.GetString(12),
+            DoctorSpecialization = reader.GetString(13)
+        };
+    }
 }
