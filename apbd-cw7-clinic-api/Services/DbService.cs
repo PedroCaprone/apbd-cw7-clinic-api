@@ -185,4 +185,71 @@ public class DbService
         var newId = (int)await command.ExecuteScalarAsync();
         return newId;
     }
+    
+    public async Task<string?> GetAppointmentStatusAsync(int idAppointment)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT Status
+                                                 FROM dbo.Appointments
+                                                 WHERE IdAppointment = @IdAppointment;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdAppointment", idAppointment);
+
+        var result = await command.ExecuteScalarAsync();
+
+        return result is null ? null : (string)result;
+    }
+    
+    public async Task<bool> DoctorHasConflictAtAsync(int idDoctor, DateTime appointmentDate, int idAppointment)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 SELECT COUNT(1)
+                                                 FROM dbo.Appointments
+                                                 WHERE IdDoctor = @IdDoctor
+                                                   AND AppointmentDate = @AppointmentDate
+                                                   AND Status = N'Scheduled'
+                                                   AND IdAppointment <> @IdAppointment;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdDoctor", idDoctor);
+        command.Parameters.AddWithValue("@AppointmentDate", appointmentDate);
+        command.Parameters.AddWithValue("@IdAppointment", idAppointment);
+
+        var result = (int)await command.ExecuteScalarAsync();
+        return result > 0;
+    }
+    
+    public async Task UpdateAppointmentAsync(int idAppointment, UpdateAppointmentRequestDto dto)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new SqlCommand("""
+                                                 UPDATE dbo.Appointments
+                                                 SET IdPatient = @IdPatient,
+                                                     IdDoctor = @IdDoctor,
+                                                     AppointmentDate = @AppointmentDate,
+                                                     Status = @Status,
+                                                     Reason = @Reason,
+                                                     InternalNotes = @InternalNotes
+                                                 WHERE IdAppointment = @IdAppointment;
+                                                 """, connection);
+
+        command.Parameters.AddWithValue("@IdAppointment", idAppointment);
+        command.Parameters.AddWithValue("@IdPatient", dto.IdPatient);
+        command.Parameters.AddWithValue("@IdDoctor", dto.IdDoctor);
+        command.Parameters.AddWithValue("@AppointmentDate", dto.AppointmentDate);
+        command.Parameters.AddWithValue("@Status", dto.Status);
+        command.Parameters.AddWithValue("@Reason", dto.Reason);
+        command.Parameters.AddWithValue("@InternalNotes", (object?)dto.InternalNotes ?? DBNull.Value);
+
+        await command.ExecuteNonQueryAsync();
+    }
 }

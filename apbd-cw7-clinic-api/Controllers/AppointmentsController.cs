@@ -94,4 +94,78 @@ public class AppointmentsController : ControllerBase
             new { idAppointment = newAppointmentId }
         );
     }
+    
+    [HttpPut("{idAppointment:int}")]
+    public async Task<IActionResult> UpdateAppointment(int idAppointment, [FromBody] UpdateAppointmentRequestDto dto)
+    {
+        var currentStatus = await _dbService.GetAppointmentStatusAsync(idAppointment);
+        
+        if (currentStatus == "Completed" && dto.AppointmentDate != (await _dbService.GetAppointmentByIdAsync(idAppointment))!.AppointmentDate)
+        {
+            return Conflict(new ErrorResponseDto
+            {
+                Message = "Cannot change date of a completed appointment"
+            });
+        }
+
+        if (currentStatus is null)
+        {
+            return NotFound();
+        }
+        
+        if (string.IsNullOrWhiteSpace(dto.Reason))
+        {
+            return BadRequest(new ErrorResponseDto
+            {
+                Message = "Reason cannot be empty"
+            });
+        }
+
+        if (dto.Reason.Length > 250)
+        {
+            return BadRequest(new ErrorResponseDto
+            {
+                Message = "Reason cannot exceed 250 characters"
+            });
+        }
+
+        if (dto.Status is not "Scheduled" and not "Completed" and not "Cancelled")
+        {
+            return BadRequest(new ErrorResponseDto
+            {
+                Message = "Invalid appointment status"
+            });
+        }
+        
+        if (!await _dbService.ActivePatientExistsAsync(dto.IdPatient))
+        {
+            return BadRequest(new ErrorResponseDto
+            {
+                Message = "Patient does not exist or is inactive"
+            });
+        }
+
+        if (!await _dbService.ActiveDoctorExistsAsync(dto.IdDoctor))
+        {
+            return BadRequest(new ErrorResponseDto
+            {
+                Message = "Doctor does not exist or is inactive"
+            });
+        }
+        
+        if (await _dbService.DoctorHasConflictAtAsync(dto.IdDoctor, dto.AppointmentDate, idAppointment))
+        {
+            return Conflict(new ErrorResponseDto
+            {
+                Message = "Doctor already has a scheduled appointment at this time"
+            });
+        }
+
+        await _dbService.UpdateAppointmentAsync(idAppointment, dto);
+
+        return Ok(new
+        {
+            message = "Appointment updated successfully"
+        });
+    }
 }
